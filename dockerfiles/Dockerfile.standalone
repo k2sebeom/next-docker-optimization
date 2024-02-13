@@ -1,0 +1,30 @@
+# Stage 1: Building the app
+FROM node:18-alpine AS builder
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Copy package.json and package-lock.json (or yarn.lock) to workdir
+COPY package.json yarn.lock ./
+
+# Install dependencies
+RUN yarn install --frozen-lockfile
+
+# Copy the rest of your app's source code
+COPY . .
+
+# Build your Next.js app
+RUN yarn build
+
+FROM node:18-alpine3.18
+
+WORKDIR /app
+
+# Copy necessary files needed for standalone next server
+COPY --from=builder /app/.next/standalone ./standalone
+COPY --from=builder /app/public ./standalone/public
+COPY --from=builder /app/.next/static ./standalone/.next/static
+
+EXPOSE 3000
+
+CMD [ "node", "./standalone/server.js" ]
